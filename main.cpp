@@ -5,6 +5,18 @@
 
 using namespace std;
 
+void DFS(int v, vector<bool>& visited, const vector<vector<int>>& adj) {
+    // Marca o vértice atual como visitado
+    visited[v] = true;
+
+    // Visita todos os vértices adjacentes não visitados
+    for (int u : adj[v]) {
+        if (!visited[u]) {
+            DFS(u, visited, adj);
+        }
+    }
+}
+
 struct Aresta {
     int id;
     int origem;
@@ -26,10 +38,62 @@ public:
         arestas.push_back(aresta);
     }
 
-    // Placeholder para funções que implementam as funcionalidades do menu
     void verificarConexo() {
-        // Implementação da verificação se o grafo é conexo
-        cout << "Verificando se o grafo é conexo..." << endl;
+    // Cria a lista de adjacência
+    vector<vector<int>> adj(numVertices);
+    vector<vector<int>> adjReverso(numVertices);
+
+    for (const auto& aresta : arestas) {
+        adj[aresta.origem].push_back(aresta.destino);
+        adjReverso[aresta.destino].push_back(aresta.origem);
+        if (!direcionado) {
+            adj[aresta.destino].push_back(aresta.origem);
+            adjReverso[aresta.origem].push_back(aresta.destino);
+        }
+    }
+
+    vector<bool> visited(numVertices, false);
+
+    // Encontra o primeiro vértice com arestas
+    int start_vertex = -1;
+    for (int i = 0; i < numVertices; ++i) {
+        if (!adj[i].empty()) {
+            start_vertex = i;
+            break;
+        }
+    }
+
+    // Se não houver arestas, o grafo é considerado desconexo
+    if (start_vertex == -1) {
+        cout << "O grafo não é conexo (não há arestas)." << endl;
+        return;
+    }
+
+    // Realiza DFS a partir do primeiro vértice encontrado
+    DFS(start_vertex, visited, adj);
+
+    // Verifica se todos os vértices com arestas foram visitados na DFS original
+    for (int i = 0; i < numVertices; ++i) {
+        if (!visited[i] && !adj[i].empty()) {
+            cout << "O grafo não é conexo." << endl;
+            return;
+        }
+    }
+
+    // Reseta o vetor de visitados e realiza DFS no grafo reverso
+    fill(visited.begin(), visited.end(), false);
+    DFS(start_vertex, visited, adjReverso);
+
+    // Verifica se todos os vértices com arestas foram visitados na DFS reversa
+    for (int i = 0; i < numVertices; ++i) {
+        if (!visited[i] && !adj[i].empty()) {
+            cout << "O grafo tem conectividade fraca." << endl;
+            return;
+        }
+    }
+
+    cout << "O grafo é conexo." << endl;
+
     }
 
     void verificarBipartido() {
@@ -124,54 +188,56 @@ int main() {
         cout << "15. Calcular o fecho transitivo" << endl;
         cout << "0. Sair" << endl;
 
-        cout << "Escolha as opções desejadas (ex: 1 2 3): ";
-        cin.ignore();
         getline(cin, entrada);
 
         stringstream ss(entrada);
         int opcao;
 
-        int v, a;
-        string direcionado;
-        cout << "Digite o número de vértices e arestas: ";
-        cin >> v >> a;
+        if (!entrada.empty() && entrada != "0") {
+            int v, a;
+            string direcionado;
 
-        cout << "O grafo é direcionado? (sim/nao): ";
-        cin >> direcionado;
+            getline(cin, entrada);
+            stringstream(entrada) >> v >> a;
 
-        bool isDirecionado = (direcionado == "sim");
+            getline(cin, direcionado);
 
-        Grafo grafo(v, a, isDirecionado);
+            bool isDirecionado = (direcionado == "direcionado");
 
-        cout << "Digite as arestas no formato: ID Origem Destino Peso" << endl;
-        for (int i = 0; i < a; ++i) {
-            int id, origem, destino, peso;
-            cin >> id >> origem >> destino >> peso;
-            grafo.adicionarAresta(id, origem, destino, peso);
-        }
+            Grafo grafo(v, a, isDirecionado);
 
-        while (ss >> opcao) {
-            switch (opcao) {
-                case 1: grafo.verificarConexo(); break;
-                case 2: grafo.verificarBipartido(); break;
-                case 3: grafo.verificarEuleriano(); break;
-                case 4: grafo.verificarCiclo(); break;
-                case 5: grafo.calcularComponentesConexas(); break;
-                case 6: grafo.calcularComponentesFortementeConexas(); break;
-                case 7: grafo.imprimirVerticesArticulacao(); break;
-                case 8: grafo.calcularArestasPonte(); break;
-                case 9: grafo.imprimirArvoreProfundidade(); break;
-                case 10: grafo.imprimirArvoreLargura(); break;
-                case 11: grafo.calcularArvoreGeradoraMinima(); break;
-                case 12: grafo.ordenarTopologicamente(); break;
-                case 13: grafo.calcularCaminhoMinimo(); break;
-                case 14: grafo.calcularFluxoMaximo(); break;
-                case 15: grafo.calcularFechoTransitivo(); break;
-                case 0: cout << "Saindo..." << endl; break;
-                default: cout << "Opção inválida!" << endl; break;
+            for (int i = 0; i < a; ++i) {
+                int id, origem, destino, peso;
+                getline(cin, entrada);
+                stringstream(entrada) >> id >> origem >> destino >> peso;
+                grafo.adicionarAresta(id, origem, destino, peso);
+            }
+
+            while (ss >> opcao) {
+                switch (opcao) {
+                    case 1: grafo.verificarConexo(); break;
+                    case 2: grafo.verificarBipartido(); break;
+                    case 3: grafo.verificarEuleriano(); break;
+                    case 4: grafo.verificarCiclo(); break;
+                    case 5: grafo.calcularComponentesConexas(); break;
+                    case 6: grafo.calcularComponentesFortementeConexas(); break;
+                    case 7: grafo.imprimirVerticesArticulacao(); break;
+                    case 8: grafo.calcularArestasPonte(); break;
+                    case 9: grafo.imprimirArvoreProfundidade(); break;
+                    case 10: grafo.imprimirArvoreLargura(); break;
+                    case 11: grafo.calcularArvoreGeradoraMinima(); break;
+                    case 12: grafo.ordenarTopologicamente(); break;
+                    case 13: grafo.calcularCaminhoMinimo(); break;
+                    case 14: grafo.calcularFluxoMaximo(); break;
+                    case 15: grafo.calcularFechoTransitivo(); break;
+                    case 0: cout << "Saindo..." << endl; break;
+                    default: cout << "Opção inválida!" << endl; break;
+                }
             }
         }
+
     } while (entrada != "0");
 
     return 0;
 }
+
