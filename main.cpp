@@ -2,6 +2,11 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <climits>
+#include <set>
+#include <queue>
+#include <algorithm>
+#include <limits>
 
 using namespace std;
 
@@ -13,6 +18,58 @@ void DFS(int v, vector<bool>& visited, const vector<vector<int>>& adj) {
     for (int u : adj[v]) {
         if (!visited[u]) {
             DFS(u, visited, adj);
+        }
+    }
+}
+
+// Essa DFS foi feita apenas para verificar se possui ciclos no grafo
+bool DFS_Ciclo(int v, vector<bool>& visited, vector<bool>& recStack, const vector<vector<int>>& adj) {
+    // Marca o vértice atual como visitado e o coloca na pilha de recursão
+    visited[v] = true;
+    recStack[v] = true;
+
+    // Visita todos os vértices adjacentes
+    for (int u : adj[v]) {
+        if (!visited[u] && DFS_Ciclo(u, visited, recStack, adj)) {
+            return true;
+        } else if (recStack[u]) {
+            return true;
+        }
+    }
+
+    // Remove o vértice atual da pilha de recursão
+    recStack[v] = false;
+    return false;
+}
+
+// Algoritmo de Tarjan
+void encontrarVerticesArticulacaoUtil(int v, vector<bool>& visited, vector<int>& disc, vector<int>& low,
+                                      vector<int>& parent, vector<bool>& articulationPoints, vector<vector<int>>& adj) {
+    static int time = 0;
+    int children = 0;
+
+    visited[v] = true;
+    disc[v] = low[v] = ++time;
+
+    for (int u : adj[v]) {
+        if (!visited[u]) {
+            children++;
+            parent[u] = v;
+            encontrarVerticesArticulacaoUtil(u, visited, disc, low, parent, articulationPoints, adj);
+
+            low[v] = min(low[v], low[u]);
+
+            // Se v não é a raiz e u não pode alcançar ancestrais de v, v é um ponto de articulação
+            if (parent[v] != -1 && low[u] >= disc[v]) {
+                articulationPoints[v] = true;
+            }
+
+            // Se v é a raiz e tem mais de um filho, é um ponto de articulação
+            if (parent[v] == -1 && children > 1) {
+                articulationPoints[v] = true;
+            }
+        } else if (u != parent[v]) {
+            low[v] = min(low[v], disc[u]);
         }
     }
 }
@@ -75,7 +132,7 @@ public:
     // Verifica se todos os vértices com arestas foram visitados na DFS original
     for (int i = 0; i < numVertices; ++i) {
         if (!visited[i] && !adj[i].empty()) {
-            cout << "O grafo não é conexo." << endl;
+            cout << "0" << endl;
             return;
         }
     }
@@ -87,12 +144,12 @@ public:
     // Verifica se todos os vértices com arestas foram visitados na DFS reversa
     for (int i = 0; i < numVertices; ++i) {
         if (!visited[i] && !adj[i].empty()) {
-            cout << "O grafo tem conectividade fraca." << endl;
+            cout << "1" << endl;
             return;
         }
     }
 
-    cout << "O grafo é conexo." << endl;
+    cout << "1" << endl;
 
     }
 
@@ -107,23 +164,77 @@ public:
     }
 
     void verificarCiclo() {
-        // Implementação da verificação se o grafo possui ciclo
-        cout << "Verificando se o grafo possui ciclo..." << endl;
+        vector<vector<int>> adj(numVertices);
+        for(const auto& aresta : arestas) {
+            adj[aresta.origem].push_back(aresta.destino);
+            if (!direcionado) {
+                adj[aresta.destino].push_back(aresta.origem);
+            }
+        }
+
+        vector<bool> visited(numVertices, false);
+        vector<bool> recStack(numVertices, false);
+
+        for (int i = 0; i < numVertices; ++i) {
+            if (!visited[i]) {
+                if (DFS_Ciclo(i, visited, recStack, adj)) {
+                    cout << '1' << endl;
+                    return;
+                }
+            }
+        }
+        cout << '0' << endl;
     }
 
     void calcularComponentesConexas() {
-        // Implementação do cálculo de componentes conexas
-        cout << "Calculando a quantidade de componentes conexas..." << endl;
+       // implementar
     }
+
 
     void calcularComponentesFortementeConexas() {
-        // Implementação do cálculo de componentes fortemente conexas
-        cout << "Calculando a quantidade de componentes fortemente conexas..." << endl;
+        // implementar
     }
 
+
     void imprimirVerticesArticulacao() {
-        // Implementação da impressão dos vértices de articulação
-        cout << "Imprimindo os vértices de articulação..." << endl;
+        if(!direcionado) {
+            vector<vector<int>> adj(numVertices);
+        
+            for (const auto& aresta : arestas) {
+                adj[aresta.origem].push_back(aresta.destino);
+                if (!direcionado) {
+                    adj[aresta.destino].push_back(aresta.origem);
+                }
+            }
+
+            vector<bool> visited(numVertices, false);
+            vector<int> disc(numVertices, -1);
+            vector<int> low(numVertices, -1);
+            vector<int> parent(numVertices, -1);
+            vector<bool> articulationPoints(numVertices, false);
+
+            for (int i = 0; i < numVertices; i++) {
+                if (!visited[i]) {
+                    encontrarVerticesArticulacaoUtil(i, visited, disc, low, parent, articulationPoints, adj);
+                }
+            }
+
+            set<int> articulationVertices;
+            for (int i = 0; i < numVertices; i++) {
+                if (articulationPoints[i]) {
+                    articulationVertices.insert(i);
+                }
+            }
+
+            for (int vertex : articulationVertices) {
+                cout << vertex << " ";
+            }
+            cout << endl;
+
+        }else{
+            cout << "-1" << endl;
+        }
+        
     }
 
     void calcularArestasPonte() {
@@ -137,8 +248,43 @@ public:
     }
 
     void imprimirArvoreLargura() {
-        // Implementação da impressão da árvore em largura
-        cout << "Imprimindo a árvore em largura..." << endl;
+         vector<vector<pair<int, int>>> adj(numVertices); // Lista de adjacência com identificador de aresta
+
+        for (const auto& aresta : arestas) {
+            adj[aresta.origem].emplace_back(aresta.destino, aresta.id);
+            if (!direcionado) {
+                adj[aresta.destino].emplace_back(aresta.origem, aresta.id);
+            }
+        }
+
+        vector<bool> visited(numVertices, false);
+        queue<int> q;
+        vector<int> ordemArestas;
+
+        q.push(0);
+        visited[0] = true;
+
+        while (!q.empty()) {
+            int v = q.front();
+            q.pop();
+
+            // Ordena a lista de adjacência do vértice atual em ordem lexicográfica
+            sort(adj[v].begin(), adj[v].end());
+
+            for (const auto& [u, id] : adj[v]) {
+                if (!visited[u]) {
+                    visited[u] = true;
+                    ordemArestas.push_back(id);
+                    q.push(u);
+                }
+            }
+        }
+
+        for (int id : ordemArestas) {
+            cout << id << " ";
+        }
+        cout << endl;
+
     }
 
     void calcularArvoreGeradoraMinima() {
@@ -152,8 +298,38 @@ public:
     }
 
     void calcularCaminhoMinimo() {
-        // Implementação do cálculo do caminho mínimo
-        cout << "Calculando o caminho mínimo..." << endl;
+        vector<vector<pair<int, int>>> adj(numVertices); // Lista de adjacência com (destino, peso)
+
+        for (const auto& aresta : arestas) {
+            adj[aresta.origem].emplace_back(aresta.destino, aresta.peso);
+            if (!direcionado) {
+                adj[aresta.destino].emplace_back(aresta.origem, aresta.peso);
+            }
+        }
+
+        // Vetor de distâncias, inicializado com infinito
+        vector<int> dist(numVertices, numeric_limits<int>::max());
+        dist[0] = 0;
+
+        // Fila de prioridade (min-heap) para selecionar o vértice com a menor distância
+        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
+        pq.push({0, 0}); // {distância, vértice}
+
+        while (!pq.empty()) {
+            int d = pq.top().first;
+            int v = pq.top().second;
+            pq.pop();
+
+            if (d > dist[v]) continue;  
+
+            for (const auto& [u, peso] : adj[v]) {
+                if (dist[v] + peso < dist[u]) {
+                    dist[u] = dist[v] + peso;
+                    pq.push({dist[u], u});
+                }
+            }
+        }
+        cout << dist[numVertices - 1] << endl;
     }
 
     void calcularFluxoMaximo() {
